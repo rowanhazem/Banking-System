@@ -1,0 +1,158 @@
+model BankingSystem
+
+--classes
+class Bank
+attributes
+BankName : String
+BankCode : String
+
+operations
+addBranch(B: Branch)
+removeBranch(B: Branch)
+
+end
+
+class Branch
+attributes
+BranchCode: String
+City: String
+Location: String
+
+operations
+addAccount(a: Account, C: Customer)
+removeAccount(a: Account)
+addLoan(L: Loan, C: Customer)
+removeLoan(L: Loan)
+
+end
+
+class Customer
+attributes
+CustomerName : String
+CustomerID : Integer
+MobileNum: Integer
+Address: String
+Age: Integer
+
+end
+
+
+class Account
+attributes
+AccountNo : String
+AccountBalance : Real
+AccountFees : Real
+AccountType : String
+InterestRate: Real
+DateOfOpening : String
+
+operations
+debitAmount(): Real
+creditAmount(): Real
+withdraw(Amount: Integer)
+deposit(Amount: Integer)
+transfer(A1:Account, A2: Account, amount: Integer)
+
+end
+
+
+class Loan
+attributes
+LoanNum: Integer
+LoanAmount: Real
+Type: String
+Prepayment: Real
+
+operations
+addCustomer(C: Customer)
+
+end
+
+-- associations
+
+association owns between
+  Bank[1] 
+  Branch[1..*] 
+end
+
+association uses between
+	Customer[*]
+	Account[1]
+end 
+
+association administers between
+  Account[0..*] 
+  Branch[1]  	
+end
+
+association has between
+  Loan[0..*] 
+  Branch[1] 
+end
+
+association takes between
+  Loan[*]  
+  Customer[1]  
+end
+
+
+--invariants
+constraints
+
+context Branch
+inv balance: Account.allInstances.forAll(a:Account | a.AccountBalance > 0)
+
+context Account
+inv UniqueAccount: Account.allInstances.forAll(A1 , A2: Account |( (A1.AccountNo <> A2.AccountNo) implies (A1 <> A2)))
+
+context Customer
+inv UniqueCustomer: Customer.allInstances.forAll(C1, C2: Customer | (C1.CustomerID <> C2.CustomerID) implies (C1<>C2))
+
+
+context Account::withdraw(Amount:Integer)
+pre p1: Amount > 0
+pre p2: AccountBalance > Amount
+post: AccountBalance = AccountBalance@pre - Amount
+
+context Account::deposit(Amount: Integer)
+pre: Amount>0
+post: AccountBalance = AccountBalance@pre + Amount
+
+context Branch::addAccount(a: Account, C: Customer)
+pre p1: C.Age >= 21 and a.AccountBalance >= 10000
+pre p2: Account.allInstances->excludes(a) --Account doesn't exist
+post : Account.allInstances->includes(a) -- Add account
+
+context Branch::removeAccount(a:Account)
+pre p1: Account.allInstances->includes(a)
+post: Account.allInstances->excludes(a) --Remove account
+
+context Branch::addLoan(L: Loan, C: Customer)
+pre p1: L.Prepayment >= 0.1*L.LoanAmount and C.Age >= 21
+pre p2: Loan.allInstances->excludes(L) --Loan doesn't exist before
+post: Loan.allInstances->includes(L) --Add Loan
+
+context Branch::removeLoan(L: Loan)
+pre p1: L.Prepayment = L.LoanAmount 
+pre p2: Loan.allInstances->includes(L) 
+post: Loan.allInstances->excludes(L) --Delete Loan
+
+context Bank::addBranch(B:Branch)
+pre : Branch.allInstances->excludes(B)
+post: Branch.allInstances->includes(B) 
+
+context Bank::removeBranch(B:Branch)
+pre: Branch.allInstances->includes(B)
+post: Branch.allInstances->excludes(B) --remove Branch
+
+context Account::transfer(A1: Account, A2: Account, amount: Integer)
+pre : A1.AccountBalance >= amount 
+post Account1: A1.AccountBalance = A1.AccountBalance@pre - amount
+post Account2: A2.AccountBalance = A2.AccountBalance@pre + amount
+
+
+
+
+
+
+
